@@ -7,3 +7,5 @@ __pycache__/
 data/churn_model.pkl
 data/feedback_store.json
 .DS_Store
+.cache
+.cache-*
