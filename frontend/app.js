@@ -99,7 +99,7 @@ async function init() {
     return;
   }
 
-  // Run auto-feedback silently on load
+  // Run auto-feedback silently, refresh stats only after it completes
   fetch(`${API}/api/feedback/auto?token=${encodeURIComponent(token)}`)
     .then(r => r.json())
     .then(data => {
@@ -110,9 +110,8 @@ async function init() {
         show('auto-banner');
         setTimeout(() => hide('auto-banner'), 6000);
       }
-    }).catch(() => {});
-
-  refreshFeedbackStats();
+      refreshFeedbackStats();
+    }).catch(() => { refreshFeedbackStats(); });
 
   // Auto-run analysis immediately after OAuth login
   if (freshLogin) {
@@ -156,6 +155,7 @@ function wireEvents() {
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
       btn.classList.add('active');
       document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+      if (btn.dataset.tab === 'loop') refreshFeedbackStats();
     });
   });
 }
