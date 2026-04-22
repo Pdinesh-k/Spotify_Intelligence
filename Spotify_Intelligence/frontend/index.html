@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spotify Intelligence Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- ── LANDING ──────────────────────────────────────────── -->
+<div id="landing">
+  <div class="landing-bg"></div>
+  <div class="landing-content">
+    <div class="landing-logo">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="24" r="24" fill="#1db954" fill-opacity="0.15"/>
+        <path d="M14 24c5.5-3.5 14.5-3.5 20 0M12 19c7-4.5 17-4.5 24 0M16 29c4-2.5 12-2.5 16 0" stroke="#1db954" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <h1 class="landing-title">Listening Intelligence</h1>
+    <p class="landing-sub">Detects when you're disengaging — and acts on it before you leave.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <span class="feature-icon">📊</span>
+        <div class="feature-label">Signal Layer</div>
+        <div class="feature-desc">7 behavioural signals. XGBoost churn classifier. SHAP explainability.</div>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🧠</span>
+        <div class="feature-label">Intelligence Engine</div>
+        <div class="feature-desc">3-step reasoning over structured tool outputs. Plain English diagnosis.</div>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🎯</span>
+        <div class="feature-label">Action Layer</div>
+        <div class="feature-desc">Content-based retrieval. Cosine similarity ranking. Top-3 tracks.</div>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🔄</span>
+        <div class="feature-label">Agentic Loop</div>
+        <div class="feature-desc">Auto-detects outcomes on next visit. System improves from its actions.</div>
+      </div>
+    </div>
+
+    <a id="connect-btn" class="btn-connect" href="#">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+      </svg>
+      Connect Spotify
+    </a>
+    <p class="landing-note">Your data stays private. Nothing is stored beyond this session.</p>
+  </div>
+</div>
+
+<!-- ── APP ─────────────────────────────────────────────── -->
+<div id="app" class="hidden">
+
+  <!-- Top nav -->
+  <nav class="topnav">
+    <div class="nav-logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#1db954">
+        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+      </svg>
+      <span>Intelligence Agent</span>
+    </div>
+    <div class="nav-right">
+      <span id="nav-username" class="nav-user"></span>
+      <button id="disconnect-btn" class="btn-ghost">Disconnect</button>
+    </div>
+  </nav>
+
+  <!-- Auto-feedback banner -->
+  <div id="auto-banner" class="auto-banner hidden"></div>
+
+  <!-- Controls -->
+  <div class="controls-bar">
+    <label class="upload-label" for="history-files">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+      </svg>
+      <span id="upload-label-text">Upload Streaming History (optional)</span>
+      <input id="history-files" type="file" accept=".json" multiple hidden />
+    </label>
+    <button id="analyze-btn" class="btn-primary">
+      <span id="analyze-label">Run Analysis</span>
+      <svg id="analyze-spinner" class="spinner hidden" width="16" height="16" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.4" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Results -->
+  <div id="results" class="hidden">
+
+    <!-- Row 1: Risk + SHAP -->
+    <div class="results-grid-2">
+      <div class="card">
+        <div class="card-header">
+          <span>Engagement Risk</span>
+          <span id="risk-badge" class="risk-badge"></span>
+        </div>
+        <div id="gauge-chart"></div>
+        <div id="risk-meta" class="risk-meta"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">Feature Signal Breakdown</div>
+        <div id="shap-chart"></div>
+      </div>
+    </div>
+
+    <!-- Row 2: Agent reasoning chain -->
+    <div class="card">
+      <div class="card-header">
+        <span>Intelligence Engine Reasoning</span>
+        <span class="badge-subtle">3-step analysis</span>
+      </div>
+      <div id="agent-chain" class="agent-chain"></div>
+      <div id="diagnosis-section" class="diagnosis-section hidden">
+        <div class="diag-row">
+          <div class="diag-block">
+            <div class="diag-label">Diagnosis</div>
+            <div id="diag-text" class="diag-text"></div>
+          </div>
+          <div class="diag-block">
+            <div class="diag-label">Hypothesis</div>
+            <div id="hypo-text" class="diag-text muted"></div>
+          </div>
+          <div class="diag-block strategy-block">
+            <div class="diag-label">Re-engagement Strategy</div>
+            <div id="strat-text" class="diag-text"></div>
+            <div id="strat-pills" class="strat-pills"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 3: Recommendations -->
+    <div class="card">
+      <div class="card-header">
+        <span>Recommended Tracks</span>
+        <span class="badge-subtle" id="rec-strategy-label"></span>
+      </div>
+      <div id="recommendations" class="recs-grid"></div>
+    </div>
+
+    <!-- Row 4: Feedback loop -->
+    <div class="card">
+      <div class="card-header">
+        <span>Agentic Feedback Loop</span>
+        <span id="loop-badge" class="badge-subtle"></span>
+      </div>
+      <div id="feedback-stats" class="feedback-stats"></div>
+      <div id="trend-chart"></div>
+      <div class="loop-explainer">
+        <div class="loop-step"><span class="loop-num">1</span><span>XGBoost detects disengagement from 7 engineered signals</span></div>
+        <div class="loop-step"><span class="loop-num">2</span><span>Intelligence engine calls 3 analysis tools, reasons across outputs</span></div>
+        <div class="loop-step"><span class="loop-num">3</span><span>Retrieval layer executes strategy — cosine similarity on audio profile</span></div>
+        <div class="loop-step"><span class="loop-num">4</span><span>Manual ✓/✗ feedback updates track scores immediately</span></div>
+        <div class="loop-step"><span class="loop-num">5</span><span>On next session, recently-played is compared to pending recs — auto-logged</span></div>
+      </div>
+    </div>
+
+  </div><!-- /results -->
+
+  <!-- Empty state -->
+  <div id="empty-state" class="empty-state">
+    <div class="empty-icon">🎵</div>
+    <div class="empty-title">Ready to analyse</div>
+    <div class="empty-sub">Optionally upload your Extended Streaming History for full accuracy, then click Run Analysis.</div>
+  </div>
+
+</div><!-- /app -->
+
+<script src="/static/app.js"></script>
+</body>
+</html>
