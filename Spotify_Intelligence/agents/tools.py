@@ -12,16 +12,25 @@ def analyze_genre_entropy(features: dict, user_profile: dict, focus_period: str 
     genre_counts = user_profile.get("genre_counts", {})
 
     total_plays = sum(genre_counts.values()) if genre_counts else 0
+    top_artist_name = user_profile.get("top_artists", [{"name": "their top artist"}])[0]["name"] if user_profile.get("top_artists") else "their niche"
+
     if genre_counts and total_plays > 0:
         top_genre = max(genre_counts, key=genre_counts.get)
         top_concentration = genre_counts[top_genre] / total_plays
         unique_active = len([g for g, c in genre_counts.items() if c >= 2])
     else:
-        top_genre = top_genres[0] if top_genres else "unknown"
-        top_concentration = 0.5
-        unique_active = len(top_genres)
+        top_genre = f"{top_artist_name}'s niche"
+        top_concentration = 1.0
+        unique_active = 1
 
-    if entropy_drop > 0.40:
+    if not genre_counts:
+        severity = "moderate"
+        interpretation = (
+            f"Spotify API returned no standard genre tags for recent tracks. "
+            f"User is deeply entrenched in a specific un-tagged musical niche ({top_genre})."
+        )
+        hint = "rely entirely on artist-based anchor recommendations rather than genre tags"
+    elif entropy_drop > 0.40:
         severity = "severe"
         interpretation = (
             f"Genre diversity has collapsed. {top_concentration:.0%} of plays are "

@@ -34,14 +34,21 @@ Base value        : {base:.3f}
 Top SHAP drivers:
 {drivers_text}
 
+=== Listening Volume (from Spotify API) ===
+Recent listening (last 50 tracks): {recent_hours:.1f} hours across {total_tracks} track plays
+Obsession rate (short vs all-time overlap): {obsession_rate:.0%}
+Repeat play ratio: {repeat_ratio:.0%}
+Days since new artist discovered: {days_new_artist:.0f} days
+Skip rate trend: {skip_trend:+.1%}
+
 === User Context ===
 Top genres  : {genres}
 Top artists : {artists}
 Country     : {country}
 
-Use the three tools to investigate these signals, then output ONLY a valid JSON object:
+Use ALL three tools to investigate these signals. Then output ONLY a valid JSON object:
 {{
-  "diagnosis"      : "<2-3 sentences — what the listening pattern shows>",
+  "diagnosis"      : "<2-3 sentences — what the listening pattern shows, referencing hours and obsession rate>",
   "hypothesis"     : "<1-2 sentences — likely underlying cause (life event / mood)>",
   "strategy"       : "<1-2 sentences — concrete re-engagement plan with specific artist/genre>",
   "strategy_genre" : "<single genre for Spotify search, e.g. 'jazz'>",
@@ -163,6 +170,7 @@ def generate_diagnosis(model_result: dict, user_profile: dict) -> tuple[dict, li
     features = model_result["feature_values"]
     top_genres = user_profile.get("top_genres", [])[:5]
     top_artists = [a["name"] for a in user_profile.get("top_artists", [])][:5]
+    listening_stats = user_profile.get("listening_stats", {})
 
     initial_text = INITIAL_PROMPT_TEMPLATE.format(
         prob=model_result["churn_probability"],
@@ -172,6 +180,12 @@ def generate_diagnosis(model_result: dict, user_profile: dict) -> tuple[dict, li
         genres=", ".join(top_genres) if top_genres else "unknown",
         artists=", ".join(top_artists) if top_artists else "unknown",
         country=user_profile.get("country", "unknown"),
+        recent_hours=listening_stats.get("recent_hours", 0.0),
+        total_tracks=listening_stats.get("total_recent_tracks", 0),
+        obsession_rate=listening_stats.get("obsession_rate", 0.0),
+        repeat_ratio=features.get("repeat_play_ratio", 0.0),
+        days_new_artist=features.get("days_new_artist", 7.0),
+        skip_trend=features.get("skip_rate_trend", 0.0),
     )
 
     client = genai.Client(api_key=GEMINI_API_KEY)

@@ -1,19 +1,13 @@
-import io
-import json
 from typing import Annotated
 
-import pandas as pd
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Form, HTTPException
 
 from agents.diagnosis import generate_diagnosis
 from agents.recommender import get_recommendations
 from ml.feedback import FeedbackStore
-from ml.features import (
-    FEATURE_NAMES,
-    extract_features_from_api,
-    extract_features_from_history,
-)
+from ml.features import extract_features_from_api
 from ml.model import predict
+from ml import analytics
 from spotify.collector import collect_user_data
 
 router = APIRouter()
@@ -21,54 +15,39 @@ router = APIRouter()
 AVG_TRACK_MS = 210_000
 
 
-def _parse_uploaded_files(raw_files: list[UploadFile]) -> pd.DataFrame:
-    records = []
-    for f in raw_files:
-        try:
-            content = f.file.read()
-            data = json.loads(content.decode("utf-8"))
-            if isinstance(data, list):
-                records.extend(data)
-        except Exception:
-            pass
 
-    if not records:
-        return pd.DataFrame()
-
-    df = pd.DataFrame(records)
-    if "ts" not in df.columns:
-        return pd.DataFrame()
-
-    df["ts"] = pd.to_datetime(df["ts"], utc=True, errors="coerce")
-    df = df.dropna(subset=["ts"]).sort_values("ts").reset_index(drop=True)
-    df["ms_played"] = pd.to_numeric(df.get("ms_played", 0), errors="coerce").fillna(0)
-    if "skipped" not in df.columns:
-        df["skipped"] = False
-    df["skipped"] = df["skipped"].fillna(False).astype(bool)
-    return df
 
 
 @router.post("/analyze")
-async def analyze(
-    token: Annotated[str, Form()],
-    files: Annotated[list[UploadFile], File()] = [],
-):
+async def analyze(token: Annotated[str, Form()]):
     try:
         user_profile = collect_user_data(token)
     except Exception as e:
         raise HTTPException(401, f"Spotify token error: {e}")
 
-    history_mode = False
-    features: dict = {}
+    features = extract_features_from_api(user_profile)
 
-    if files:
-        df = _parse_uploaded_files(files)
-        if not df.empty:
-            features = extract_features_from_history(df)
-            history_mode = bool(features)
+    # Calculate explicit API-based listening stats
+    recent_played = user_profile.get("recently_played", [])
+    recent_ms = sum(t.get("ms_played", 0) for t in recent_played)
+    recent_hours = recent_ms / 3600000.0
 
-    if not features:
-        features = extract_features_from_api(user_profile)
+    top_tracks_recent = user_profile.get("top_tracks_recent", [])
+    top_tracks_alltime = user_profile.get("top_tracks_alltime", [])
+    overlap = len({t["name"] for t in top_tracks_recent} & {t["name"] for t in top_tracks_alltime})
+    obsession_rate = overlap / max(len(top_tracks_recent), 1)
+
+    listening_stats = {
+        "recent_hours": round(recent_hours, 2),
+        "obsession_rate": round(obsession_rate, 2),
+        "total_recent_tracks": len(recent_played)
+    }
+    
+    # Inject into user_profile so agents can access it
+    user_profile["listening_stats"] = listening_stats
+
+    # Full data science analytics
+    analytics_data = analytics.compute_all(user_profile)
 
     try:
         model_result = predict(features)
@@ -109,5 +88,6 @@ async def analyze(
         "diagnosis": diagnosis,
         "agent_chain": agent_chain,
         "recommendations": recommendations,
-        "history_mode": history_mode,
+        "listening_stats": listening_stats,
+        "analytics": analytics_data,
     }

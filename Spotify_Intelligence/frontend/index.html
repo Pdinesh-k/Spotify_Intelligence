@@ -4,16 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Spotify Intelligence Agent</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='%231db954'/%3E%3Cpath d='M17.9 10.9C14.7 9 9.35 8.8 6.3 9.75c-.5.15-1-.15-1.15-.6-.15-.5.15-1 .6-1.15 3.55-1.05 9.4-.85 13.1 1.35.45.25.6.85.35 1.3-.25.35-.85.5-1.3.25zm-.1 2.8c-.25.35-.7.5-1.05.25-2.7-1.65-6.8-2.15-9.95-1.15-.4.1-.85-.1-.95-.5-.1-.4.1-.85.5-.95 3.65-1.1 8.15-.55 11.25 1.35.3.15.45.65.2 1zm-1.2 2.75c-.2.3-.55.4-.85.2-2.35-1.45-5.3-1.75-8.8-.95-.35.1-.65-.15-.75-.45-.1-.35.15-.65.45-.75 3.8-.85 7.1-.5 9.7 1.1.35.15.4.55.25.85z' fill='white'/%3E%3C/svg%3E" />
+  <meta name="description" content="Understand your Spotify listening habits with AI-powered analytics and personalised recommendations." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/style.css?v=3" />
 </head>
 <body>
 
-<!-- ── LANDING ──────────────────────────────────────────── -->
-<div id="landing">
+<!-- ── PAGE: /home — Landing ─────────────────────────────── -->
+<div id="page-home" class="hidden">
   <div class="landing-bg"></div>
   <div class="landing-content">
     <div class="landing-logo">
@@ -23,28 +25,36 @@
       </svg>
     </div>
     <h1 class="landing-title">Listening Intelligence</h1>
-    <p class="landing-sub">Detects when you're disengaging — and acts on it before you leave.</p>
+    <p class="landing-sub">Understand your listening habits. Find music that fits.</p>
 
     <div class="feature-grid">
       <div class="feature-card">
-        <span class="feature-icon">📊</span>
-        <div class="feature-label">Signal Layer</div>
-        <div class="feature-desc">7 behavioural signals. XGBoost churn classifier. SHAP explainability.</div>
+        <span class="feature-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1db954" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+        </span>
+        <div class="feature-label">Habit Tracking</div>
+        <div class="feature-desc">See how often you skip tracks, when you listen, and how your genre tastes evolve over time.</div>
       </div>
       <div class="feature-card">
-        <span class="feature-icon">🧠</span>
-        <div class="feature-label">Intelligence Engine</div>
-        <div class="feature-desc">3-step reasoning over structured tool outputs. Plain English diagnosis.</div>
+        <span class="feature-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1db954" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+        </span>
+        <div class="feature-label">Mood Mapping</div>
+        <div class="feature-desc">Understand the underlying energy and emotional tone of your recent plays.</div>
       </div>
       <div class="feature-card">
-        <span class="feature-icon">🎯</span>
-        <div class="feature-label">Action Layer</div>
-        <div class="feature-desc">Content-based retrieval. Cosine similarity ranking. Top-3 tracks.</div>
+        <span class="feature-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1db954" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+        </span>
+        <div class="feature-label">Fresh Tracks</div>
+        <div class="feature-desc">Get recommendations that actually make sense for the phase you're going through.</div>
       </div>
       <div class="feature-card">
-        <span class="feature-icon">🔄</span>
-        <div class="feature-label">Agentic Loop</div>
-        <div class="feature-desc">Auto-detects outcomes on next visit. System improves from its actions.</div>
+        <span class="feature-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1db954" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.92-10.44l5.36 2.87"></path></svg>
+        </span>
+        <div class="feature-label">Feedback Loop</div>
+        <div class="feature-desc">Tell us what you like, and the rankings adjust instantly to fit your taste.</div>
       </div>
     </div>
 
@@ -58,17 +68,18 @@
   </div>
 </div>
 
-<!-- ── APP ─────────────────────────────────────────────── -->
-<div id="app" class="hidden">
+<!-- ── APP SHELL (nav + banner always present when logged in) ── -->
+<div id="app-shell" class="hidden">
 
   <!-- Top nav -->
   <nav class="topnav">
-    <div class="nav-logo">
+    <div class="nav-logo" id="nav-logo-link" style="cursor:pointer">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="#1db954">
         <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
       </svg>
       <span>Intelligence Agent</span>
     </div>
+    <div class="nav-center" id="nav-breadcrumb"></div>
     <div class="nav-right">
       <span id="nav-username" class="nav-user"></span>
       <button id="disconnect-btn" class="btn-ghost">Disconnect</button>
@@ -78,105 +89,169 @@
   <!-- Auto-feedback banner -->
   <div id="auto-banner" class="auto-banner hidden"></div>
 
-  <!-- Controls -->
-  <div class="controls-bar">
-    <label class="upload-label" for="history-files">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-      </svg>
-      <span id="upload-label-text">Upload Streaming History (optional)</span>
-      <input id="history-files" type="file" accept=".json" multiple hidden />
-    </label>
-    <button id="analyze-btn" class="btn-primary">
-      <span id="analyze-label">Run Analysis</span>
-      <svg id="analyze-spinner" class="spinner hidden" width="16" height="16" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.4" stroke-linecap="round"/>
-      </svg>
-    </button>
+  <!-- ── PAGE: /analyze ─────────────────────────────────── -->
+  <div id="page-analyze" class="hidden">
+    <div class="analyze-hero">
+      <div class="analyze-hero-inner">
+        <div class="analyze-greeting" id="analyze-greeting">Welcome back</div>
+        <h2 class="analyze-headline">Ready to decode<br>your music taste?</h2>
+        <p class="analyze-sub">We'll analyse your Spotify listening history, detect patterns, predict engagement risk, and surface tracks you'll actually love.</p>
+
+        <button id="analyze-btn" class="btn-analyze">
+          <span id="analyze-label">Run Analysis</span>
+          <svg id="analyze-spinner" class="spinner hidden" width="18" height="18" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.4" stroke-linecap="round"/>
+          </svg>
+          <svg id="analyze-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
+        <p class="analyze-note">Takes about 5 seconds · No data stored after session</p>
+      </div>
+    </div>
   </div>
 
-  <!-- Results -->
-  <div id="results" class="hidden">
+  <!-- ── PAGE: /results ─────────────────────────────────── -->
+  <div id="page-results" class="hidden">
 
-    <!-- Row 1: Risk + SHAP -->
-    <div class="results-grid-2">
-      <div class="card">
-        <div class="card-header">
-          <span>Engagement Risk</span>
-          <span id="risk-badge" class="risk-badge"></span>
-        </div>
-        <div id="gauge-chart"></div>
-        <div id="risk-meta" class="risk-meta"></div>
-      </div>
-      <div class="card">
-        <div class="card-header">Feature Signal Breakdown</div>
-        <div id="shap-chart"></div>
-      </div>
+    <!-- Tabs -->
+    <div class="tab-bar" id="tab-bar">
+      <button class="tab-btn active" data-tab="risk">Risk &amp; Signals</button>
+      <button class="tab-btn" data-tab="profile">Music Profile</button>
+      <button class="tab-btn" data-tab="diagnosis">AI Diagnosis</button>
+      <button class="tab-btn" data-tab="recs">Recommendations</button>
+      <button class="tab-btn" data-tab="loop">Feedback Loop</button>
+      <button class="tab-btn-action" id="reanalyze-btn">↺ Re-run</button>
     </div>
 
-    <!-- Row 2: Agent reasoning chain -->
-    <div class="card">
-      <div class="card-header">
-        <span>Intelligence Engine Reasoning</span>
-        <span class="badge-subtle">3-step analysis</span>
-      </div>
-      <div id="agent-chain" class="agent-chain"></div>
-      <div id="diagnosis-section" class="diagnosis-section hidden">
-        <div class="diag-row">
-          <div class="diag-block">
-            <div class="diag-label">Diagnosis</div>
-            <div id="diag-text" class="diag-text"></div>
+    <div id="results-inner">
+
+      <!-- ── TAB: Risk & Signals ── -->
+      <div class="tab-panel active" id="tab-risk">
+        <div class="results-grid-2">
+          <div class="card">
+            <div class="card-header">
+              <span>Engagement Risk</span>
+              <span id="risk-badge" class="risk-badge"></span>
+            </div>
+            <div id="gauge-chart"></div>
+            <div id="risk-meta" class="risk-meta"></div>
           </div>
-          <div class="diag-block">
-            <div class="diag-label">Hypothesis</div>
-            <div id="hypo-text" class="diag-text muted"></div>
-          </div>
-          <div class="diag-block strategy-block">
-            <div class="diag-label">Re-engagement Strategy</div>
-            <div id="strat-text" class="diag-text"></div>
-            <div id="strat-pills" class="strat-pills"></div>
+          <div class="card">
+            <div class="card-header">Feature Signal Breakdown</div>
+            <div id="shap-chart"></div>
           </div>
         </div>
+        <div class="card" id="listening-stats-card">
+          <div class="card-header">Your Listening Stats</div>
+          <div id="listening-stats" class="stats-row"></div>
+        </div>
       </div>
-    </div>
 
-    <!-- Row 3: Recommendations -->
-    <div class="card">
-      <div class="card-header">
-        <span>Recommended Tracks</span>
-        <span class="badge-subtle" id="rec-strategy-label"></span>
+      <!-- ── TAB: Music Profile ── -->
+      <div class="tab-panel hidden" id="tab-profile">
+        <div class="card">
+          <div class="card-header">Your Music DNA</div>
+          <div id="dna-stats" class="stats-row"></div>
+        </div>
+        <div class="results-grid-2">
+          <div class="card">
+            <div class="card-header">When You Listen</div>
+            <div id="hour-chart"></div>
+            <div id="dow-chart"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">Genre Distribution</div>
+            <div id="genre-donut"></div>
+          </div>
+        </div>
+        <div class="results-grid-2">
+          <div class="card">
+            <div class="card-header">Taste Trajectory</div>
+            <div id="trajectory-badge"></div>
+            <div id="traj-chart"></div>
+            <div id="traj-caption" class="card-caption"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">Artist Loyalty</div>
+            <div id="loyalty-gauge"></div>
+            <div id="loyalty-caption" class="card-caption"></div>
+            <div id="artist-movement"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">Your Artist Timeline <span class="badge-subtle">4 weeks → 6 months → All time</span></div>
+          <div class="artist-timeline" id="artist-timeline"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">Artists You Haven't Explored Yet <span id="discovery-count" class="badge-subtle"></span></div>
+          <div id="discovery-grid" class="discovery-grid"></div>
+        </div>
       </div>
-      <div id="recommendations" class="recs-grid"></div>
-    </div>
 
-    <!-- Row 4: Feedback loop -->
-    <div class="card">
-      <div class="card-header">
-        <span>Agentic Feedback Loop</span>
-        <span id="loop-badge" class="badge-subtle"></span>
+      <!-- ── TAB: AI Diagnosis ── -->
+      <div class="tab-panel hidden" id="tab-diagnosis">
+        <div class="card">
+          <div class="card-header">
+            <span>Intelligence Engine Reasoning</span>
+            <span class="badge-subtle">3-step analysis</span>
+          </div>
+          <div id="agent-chain" class="agent-chain"></div>
+          <div id="diagnosis-section" class="diagnosis-section hidden">
+            <div class="diag-row">
+              <div class="diag-block">
+                <div class="diag-label">Diagnosis</div>
+                <div id="diag-text" class="diag-text"></div>
+              </div>
+              <div class="diag-block">
+                <div class="diag-label">Hypothesis</div>
+                <div id="hypo-text" class="diag-text muted"></div>
+              </div>
+              <div class="diag-block strategy-block">
+                <div class="diag-label">Re-engagement Strategy</div>
+                <div id="strat-text" class="diag-text"></div>
+                <div id="strat-pills" class="strat-pills"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div id="feedback-stats" class="feedback-stats"></div>
-      <div id="trend-chart"></div>
-      <div class="loop-explainer">
-        <div class="loop-step"><span class="loop-num">1</span><span>XGBoost detects disengagement from 7 engineered signals</span></div>
-        <div class="loop-step"><span class="loop-num">2</span><span>Intelligence engine calls 3 analysis tools, reasons across outputs</span></div>
-        <div class="loop-step"><span class="loop-num">3</span><span>Retrieval layer executes strategy — cosine similarity on audio profile</span></div>
-        <div class="loop-step"><span class="loop-num">4</span><span>Manual ✓/✗ feedback updates track scores immediately</span></div>
-        <div class="loop-step"><span class="loop-num">5</span><span>On next session, recently-played is compared to pending recs — auto-logged</span></div>
+
+      <!-- ── TAB: Recommendations ── -->
+      <div class="tab-panel hidden" id="tab-recs">
+        <div class="card">
+          <div class="card-header">
+            <span>Recommended Tracks</span>
+            <span class="badge-subtle" id="rec-strategy-label"></span>
+          </div>
+          <div id="recommendations" class="recs-grid"></div>
+        </div>
       </div>
-    </div>
 
-  </div><!-- /results -->
+      <!-- ── TAB: Feedback Loop ── -->
+      <div class="tab-panel hidden" id="tab-loop">
+        <div class="card">
+          <div class="card-header">
+            <span>Continuous Learning Loop</span>
+            <span id="loop-badge" class="badge-subtle"></span>
+          </div>
+          <div id="feedback-stats" class="feedback-stats"></div>
+          <div id="trend-chart"></div>
+          <div class="loop-explainer">
+            <div class="loop-step"><span class="loop-num">1</span><span>We analyze your current listening habits and detect what you're craving</span></div>
+            <div class="loop-step"><span class="loop-num">2</span><span>Our insights engine builds a personalized profile of your musical state</span></div>
+            <div class="loop-step"><span class="loop-num">3</span><span>We search high and low for tracks that perfectly match your profile</span></div>
+            <div class="loop-step"><span class="loop-num">4</span><span>Tell us what you love or skip to tune your music taste in real-time</span></div>
+            <div class="loop-step"><span class="loop-num">5</span><span>Every time you come back, your recommendations are even smarter</span></div>
+          </div>
+        </div>
+      </div>
 
-  <!-- Empty state -->
-  <div id="empty-state" class="empty-state">
-    <div class="empty-icon">🎵</div>
-    <div class="empty-title">Ready to analyse</div>
-    <div class="empty-sub">Optionally upload your Extended Streaming History for full accuracy, then click Run Analysis.</div>
-  </div>
+    </div><!-- /results-inner -->
+  </div><!-- /page-results -->
 
-</div><!-- /app -->
+</div><!-- /app-shell -->
 
-<script src="/static/app.js"></script>
+<script src="/static/app.js?v=3"></script>
 </body>
 </html>
