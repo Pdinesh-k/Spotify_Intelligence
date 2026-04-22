@@ -24,21 +24,24 @@ def _fetch_recent_plays(access_token: str, after_ms: int) -> list[dict]:
         return []
 
 
-def run_auto_feedback(access_token: str) -> list[dict]:
-    """
-    Check recently-played against pending recommendations.
-    Returns a list of auto-detected outcomes for UI notification.
-    """
-    store = FeedbackStore()
+def _get_user_id(access_token: str) -> str:
+    try:
+        sp = spotipy.Spotify(auth=access_token)
+        return sp.current_user().get("id", "global")
+    except Exception:
+        return "global"
 
-    # First expire any very old pending entries
+
+def run_auto_feedback(access_token: str) -> list[dict]:
+    user_id = _get_user_id(access_token)
+    store = FeedbackStore(user_id)
+
     expired = store.expire_old_pending()
 
     pending = store.get_pending()
     if not pending:
         return []
 
-    # Find the oldest recommendation timestamp to use as the Spotify API `after` cursor
     oldest_ts = min(
         datetime.fromisoformat(
             r["recommended_at"].replace("Z", "+00:00")
@@ -55,15 +58,11 @@ def run_auto_feedback(access_token: str) -> list[dict]:
     recent_ids = {p["id"] for p in recent_plays}
 
     auto_outcomes = []
-    for rec in list(pending):  # iterate copy since store mutates pending
+    for rec in list(pending):
         if rec["track_id"] in recent_ids:
             store.log_interaction(
-                rec["track_id"],
-                rec["track_name"],
-                rec["artist"],
-                "listened",
-                rec["churn_prob"],
-                auto=True,
+                rec["track_id"], rec["track_name"], rec["artist"],
+                "listened", rec["churn_prob"], auto=True,
             )
             auto_outcomes.append({
                 "track_name": rec["track_name"],

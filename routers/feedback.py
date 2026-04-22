@@ -12,13 +12,14 @@ class FeedbackRequest(BaseModel):
     artist: str
     outcome: str          # 'listened' | 'skipped'
     churn_prob: float
+    user_id: str = "global"
 
 
 @router.post("/log")
 async def log_feedback(req: FeedbackRequest):
     if req.outcome not in ("listened", "skipped"):
         raise HTTPException(400, "outcome must be 'listened' or 'skipped'")
-    store = FeedbackStore()
+    store = FeedbackStore(req.user_id)
     store.log_interaction(
         req.track_id, req.track_name, req.artist,
         req.outcome, req.churn_prob,
@@ -27,8 +28,8 @@ async def log_feedback(req: FeedbackRequest):
 
 
 @router.get("/stats")
-async def get_stats():
-    return FeedbackStore().get_stats()
+async def get_stats(user_id: str = Query(default="global")):
+    return FeedbackStore(user_id).get_stats()
 
 
 @router.get("/auto")

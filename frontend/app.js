@@ -1,6 +1,7 @@
 /* ── State ─────────────────────────────────────────────── */
 const API = '';
 let token = localStorage.getItem('si_token');
+let userId = localStorage.getItem('si_user_id') || 'global';
 let analysisData = null;
 let feedbackLogged = {};
 
@@ -161,7 +162,9 @@ function wireEvents() {
 
 function disconnect() {
   localStorage.removeItem('si_token');
+  localStorage.removeItem('si_user_id');
   token = null;
+  userId = 'global';
   analysisData = null;
   setupLanding().then(() => navigate('/home'));
 }
@@ -206,6 +209,10 @@ function renderResults(data) {
     document.getElementById('nav-username').textContent = user_profile.display_name;
     const greet = document.getElementById('analyze-greeting');
     if (greet) greet.textContent = `Welcome back, ${user_profile.display_name.split(' ')[0]}`;
+  }
+  if (user_profile.user_id) {
+    userId = user_profile.user_id;
+    localStorage.setItem('si_user_id', userId);
   }
 
   // Reset tabs to first
@@ -590,7 +597,7 @@ async function logFeedback(trackId, name, artist, outcome, churnProb) {
     const res = await fetch(`${API}/api/feedback/log`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ track_id: trackId, track_name: name, artist, outcome, churn_prob: churnProb }),
+      body: JSON.stringify({ track_id: trackId, track_name: name, artist, outcome, churn_prob: churnProb, user_id: userId }),
     });
     const data = await res.json();
     if (data.stats) updateFeedbackUI(data.stats);
@@ -600,7 +607,7 @@ async function logFeedback(trackId, name, artist, outcome, churnProb) {
 /* ── Tab 5: Feedback stats ─────────────────────────────── */
 async function refreshFeedbackStats() {
   try {
-    const res = await fetch(`${API}/api/feedback/stats`);
+    const res = await fetch(`${API}/api/feedback/stats?user_id=${encodeURIComponent(userId)}`);
     const stats = await res.json();
     updateFeedbackUI(stats);
   } catch {}

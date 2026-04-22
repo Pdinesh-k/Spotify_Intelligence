@@ -1,9 +1,0 @@
-.env
-.venv/
-__pycache__/
-*.pyc
-*.pkl
-*.pyo
-data/churn_model.pkl
-data/feedback_store.json
-.DS_Store
