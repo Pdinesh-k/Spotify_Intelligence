@@ -66,8 +66,9 @@ async def analyze(token: Annotated[str, Form()]):
     except Exception:
         recommendations = []
 
-    # Store recommendations as pending for the auto-feedback loop
-    store = FeedbackStore()
+    # Store recommendations as pending for the auto-feedback loop (per-user)
+    user_id = user_profile.get("user_id", "global")
+    store = FeedbackStore(user_id)
     prob = model_result["churn_probability"]
     for rec in recommendations:
         store.store_pending(rec["id"], rec["name"], rec["artist"], prob)

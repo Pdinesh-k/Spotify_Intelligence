@@ -5,7 +5,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 SPOTIFY_CLIENT_ID: str = os.getenv("SPOTIFY_CLIENT_ID", "")
 SPOTIFY_CLIENT_SECRET: str = os.getenv("SPOTIFY_CLIENT_SECRET", "")
-SPOTIFY_REDIRECT_URI: str = os.getenv("SPOTIFY_REDIRECT_URI", "http://localhost:8501")
+SPOTIFY_REDIRECT_URI: str = os.getenv("SPOTIFY_REDIRECT_URI", "https://spotify-intelligence-367v.onrender.com/api/spotify/callback")
 
 GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL: str = "gemini-2.5-flash"
