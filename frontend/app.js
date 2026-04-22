@@ -103,18 +103,18 @@ async function init() {
   show('app-shell');
   navigate('/analyze', false);
 
-  // Run auto-feedback first, then run analysis, then refresh stats with correct userId
-  fetch(`${API}/api/feedback/auto?token=${encodeURIComponent(token)}`)
-    .then(r => r.json())
-    .then(data => {
-      if (data.outcomes && data.outcomes.length > 0) {
-        const names = data.outcomes.slice(0, 2).map(o => `<b>${o.track_name}</b>`).join(', ');
-        const banner = document.getElementById('auto-banner');
-        banner.innerHTML = `🔄 Auto-feedback loop: ${names} detected as listened — scores updated.`;
-        show('auto-banner');
-        setTimeout(() => hide('auto-banner'), 6000);
-      }
-    }).catch(() => {});
+  // Auto-feedback MUST complete before analysis starts so stats are correct
+  try {
+    const fbRes = await fetch(`${API}/api/feedback/auto?token=${encodeURIComponent(token)}`);
+    const fbData = await fbRes.json();
+    if (fbData.outcomes && fbData.outcomes.length > 0) {
+      const names = fbData.outcomes.slice(0, 2).map(o => `<b>${o.track_name}</b>`).join(', ');
+      const banner = document.getElementById('auto-banner');
+      banner.innerHTML = `🔄 Auto-feedback loop: ${names} detected as listened — scores updated.`;
+      show('auto-banner');
+      setTimeout(() => hide('auto-banner'), 6000);
+    }
+  } catch {}
 
   runAnalysis();
 }
@@ -215,8 +215,7 @@ function renderResults(data) {
   if (analytics) renderMusicProfile(analytics, user_profile);
   renderAgentChain(agent_chain, diagnosis);
   renderRecommendations(recommendations, model_result.churn_probability);
-  // Wait for auto-feedback to finish writing before fetching stats
-  setTimeout(refreshFeedbackStats, 2000);
+  refreshFeedbackStats();
 }
 
 /* ── Tab 1: Risk ───────────────────────────────────────── */
