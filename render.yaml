@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: spotify-intelligence-agent
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: SPOTIFY_CLIENT_ID
+        sync: false
+      - key: SPOTIFY_CLIENT_SECRET
+        sync: false
+      - key: SPOTIFY_REDIRECT_URI
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
