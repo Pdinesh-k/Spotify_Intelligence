@@ -99,7 +99,11 @@ async function init() {
     return;
   }
 
-  // Run auto-feedback silently, refresh stats only after it completes
+  // Always auto-run analysis on every login (fresh OAuth or returning with stored token)
+  show('app-shell');
+  navigate('/analyze', false);
+
+  // Run auto-feedback first, then run analysis, then refresh stats with correct userId
   fetch(`${API}/api/feedback/auto?token=${encodeURIComponent(token)}`)
     .then(r => r.json())
     .then(data => {
@@ -110,23 +114,9 @@ async function init() {
         show('auto-banner');
         setTimeout(() => hide('auto-banner'), 6000);
       }
-      refreshFeedbackStats();
-    }).catch(() => { refreshFeedbackStats(); });
+    }).catch(() => {});
 
-  // Auto-run analysis immediately after OAuth login
-  if (freshLogin) {
-    show('app-shell');
-    navigate('/analyze', false);
-    runAnalysis();
-    return;
-  }
-
-  const path = location.pathname;
-  if (path === '/results' && analysisData) {
-    navigate('/results', false);
-  } else {
-    navigate('/analyze', false);
-  }
+  runAnalysis();
 }
 
 /* ── Landing setup ─────────────────────────────────────── */
@@ -225,7 +215,8 @@ function renderResults(data) {
   if (analytics) renderMusicProfile(analytics, user_profile);
   renderAgentChain(agent_chain, diagnosis);
   renderRecommendations(recommendations, model_result.churn_probability);
-  refreshFeedbackStats();
+  // Wait for auto-feedback to finish writing before fetching stats
+  setTimeout(refreshFeedbackStats, 2000);
 }
 
 /* ── Tab 1: Risk ───────────────────────────────────────── */
