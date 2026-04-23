@@ -216,8 +216,9 @@ def extract_features_from_api(api_data: dict) -> dict:
         sess_recent = _count_api_sessions(recent_half) / span_recent
         features["session_freq_delta"] = float(sess_recent - sess_older)
     else:
-        avg_valence = api_data.get("avg_valence", 0.5)
-        features["session_freq_delta"] = float((avg_valence - 0.5) * 2)
+        # No timestamp data — negative delta (sessions falling) is a better assumption
+        # than 0.0 when we have no listening history at all
+        features["session_freq_delta"] = -0.5 if not recent_played else 0.0
 
     # 3. Listen depth — energy as proxy (engaged listeners tend toward higher energy)
     features["listen_depth"] = float(api_data.get("avg_energy", 0.6))
@@ -240,7 +241,8 @@ def extract_features_from_api(api_data: dict) -> dict:
         shift = abs(sum(recent_hours) / len(recent_hours) - sum(older_hours) / len(older_hours))
         features["time_of_day_shift"] = float(shift)
     else:
-        features["time_of_day_shift"] = 2.0
+        # No timestamp data — use neutral value (4.0 = midpoint of engaged/churned range)
+        features["time_of_day_shift"] = 4.0
 
     # 6. Days since new artist — compare recently_played artists vs long-term top artists
     long_term_artist_names = {a["name"] for a in api_data.get("top_artists_long", [])}
@@ -270,10 +272,15 @@ def extract_features_from_api(api_data: dict) -> dict:
         features["days_new_artist"] = 7.0  # not enough data — assume no new discovery
 
     # 7. Repeat play ratio — overlap between recent and all-time
-    recent_names = {t["name"] for t in recent_played[:20]}
-    alltime_names = {t["name"] for t in top_alltime}
-    overlap = len(recent_names & alltime_names)
-    features["repeat_play_ratio"] = float(overlap / max(len(recent_names), 1))
+    # When recently_played is empty we cannot compute this — use neutral 0.5
+    # (0.0 falsely signals "engaged" since churned users are trained at ~0.55)
+    if recent_played:
+        recent_names = {t["name"] for t in recent_played[:20]}
+        alltime_names = {t["name"] for t in top_alltime}
+        overlap = len(recent_names & alltime_names)
+        features["repeat_play_ratio"] = float(overlap / max(len(recent_names), 1))
+    else:
+        features["repeat_play_ratio"] = 0.5  # neutral — unknown, not falsely engaged
 
     return features
 
