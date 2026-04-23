@@ -158,27 +158,66 @@ def extract_features_from_history(df: pd.DataFrame) -> dict:
     return features
 
 
+def _parse_played_at(ts_str: str):
+    """Parse Spotify's played_at ISO string to a timezone-aware datetime."""
+    from datetime import datetime, timezone
+    try:
+        return datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
 def extract_features_from_api(api_data: dict) -> dict:
     """
     Approximate the 7 features from Spotify API data only (no history file).
     Less accurate than history-based features — shown with a warning in the UI.
     """
+    from datetime import datetime, timezone
+
     features: dict = {}
 
     top_recent = api_data.get("top_tracks_recent", [])
     top_alltime = api_data.get("top_tracks_alltime", [])
-    top_artists = api_data.get("top_artists", [])
     recent_played = api_data.get("recently_played", [])
     genre_counts = api_data.get("genre_counts", {})
+
+    # Parse timestamps from recently_played (Spotify returns newest-first)
+    played_times: list = []
+    for t in recent_played:
+        dt = _parse_played_at(t.get("played_at", ""))
+        if dt:
+            played_times.append(dt)
 
     # 1. Skip rate trend — popularity drop between all-time and recent is a weak proxy
     pop_recent = np.mean([t["popularity"] for t in top_recent]) if top_recent else 50
     pop_alltime = np.mean([t["popularity"] for t in top_alltime]) if top_alltime else 50
     features["skip_rate_trend"] = float(max(0.0, (pop_alltime - pop_recent) / 200))
 
-    # 2. Session frequency delta — valence drop as proxy
-    avg_valence = api_data.get("avg_valence", 0.5)
-    features["session_freq_delta"] = float((avg_valence - 0.5) * 2)
+    # 2. Session frequency delta — sessions per day in first vs second half of recent plays
+    if len(played_times) >= 6:
+        sorted_times = sorted(played_times)  # oldest first
+        mid = len(sorted_times) // 2
+        older_half = sorted_times[:mid]
+        recent_half = sorted_times[mid:]
+
+        def _count_api_sessions(ts_list: list) -> int:
+            if not ts_list:
+                return 0
+            sessions = 1
+            for i in range(1, len(ts_list)):
+                gap = (ts_list[i] - ts_list[i - 1]).total_seconds()
+                if gap > 1800:
+                    sessions += 1
+            return sessions
+
+        span_older = max((older_half[-1] - older_half[0]).total_seconds() / 86400, 0.5)
+        span_recent = max((recent_half[-1] - recent_half[0]).total_seconds() / 86400, 0.5)
+        sess_older = _count_api_sessions(older_half) / span_older
+        sess_recent = _count_api_sessions(recent_half) / span_recent
+        features["session_freq_delta"] = float(sess_recent - sess_older)
+    else:
+        avg_valence = api_data.get("avg_valence", 0.5)
+        features["session_freq_delta"] = float((avg_valence - 0.5) * 2)
 
     # 3. Listen depth — energy as proxy (engaged listeners tend toward higher energy)
     features["listen_depth"] = float(api_data.get("avg_energy", 0.6))
@@ -192,11 +231,33 @@ def extract_features_from_api(api_data: dict) -> dict:
     else:
         features["genre_entropy_drop"] = 0.4
 
-    # 5. Time-of-day shift — cannot compute without timestamps; neutral default
-    features["time_of_day_shift"] = 2.0
+    # 5. Time-of-day shift — hour drift between first and second half of recent plays
+    if len(played_times) >= 6:
+        sorted_times = sorted(played_times)
+        mid = len(sorted_times) // 2
+        older_hours = [t.hour for t in sorted_times[:mid]]
+        recent_hours = [t.hour for t in sorted_times[mid:]]
+        shift = abs(sum(recent_hours) / len(recent_hours) - sum(older_hours) / len(older_hours))
+        features["time_of_day_shift"] = float(shift)
+    else:
+        features["time_of_day_shift"] = 2.0
 
-    # 6. Days since new artist — neutral default
-    features["days_new_artist"] = 3.0
+    # 6. Days since new artist — compare recently_played artists vs long-term top artists
+    long_term_artist_names = {a["name"] for a in api_data.get("top_artists_long", [])}
+    if long_term_artist_names and recent_played and played_times:
+        now = datetime.now(timezone.utc)
+        days_list = []
+        for t, dt in zip(recent_played, played_times):
+            artist = t.get("artist", "")
+            if artist and artist not in long_term_artist_names:
+                days_ago = (now - dt).total_seconds() / 86400.0
+                days_list.append(days_ago)
+        if days_list:
+            features["days_new_artist"] = float(min(days_list))  # most recent new artist
+        else:
+            features["days_new_artist"] = 7.0  # no new artists discovered recently
+    else:
+        features["days_new_artist"] = 3.0  # no long-term data to compare
 
     # 7. Repeat play ratio — overlap between recent and all-time
     recent_names = {t["name"] for t in recent_played[:20]}

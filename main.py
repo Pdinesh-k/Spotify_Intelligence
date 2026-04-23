@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from routers import auth, analysis, feedback
+from routers import auth, analysis, feedback, debug
 
 app = FastAPI(title="Spotify Intelligence Agent", docs_url=None, redoc_url=None)
 
@@ -19,6 +19,7 @@ app.add_middleware(
 app.include_router(auth.router,      prefix="/api/spotify",  tags=["auth"])
 app.include_router(analysis.router,  prefix="/api",          tags=["analysis"])
 app.include_router(feedback.router,  prefix="/api/feedback", tags=["feedback"])
+app.include_router(debug.router,     prefix="/api/debug",    tags=["debug"])
 
 FRONTEND = os.path.join(os.path.dirname(__file__), "frontend")
 
