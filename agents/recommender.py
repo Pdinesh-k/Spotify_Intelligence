@@ -58,22 +58,25 @@ def get_recommendations(
     strategy_artist = strategy.get("strategy_artist", "").strip()
     strategy_genre = strategy.get("strategy_genre", "").strip()
 
+    # Use user's country market so Spotify doesn't reject the request
+    market = user_profile.get("country") or "US"
+
     candidates: list[dict] = []
 
     # 1. Search by strategy artist
     if strategy_artist:
         try:
-            res = sp.search(q=f"artist:{strategy_artist}", type="track", limit=20)
+            res = sp.search(q=strategy_artist, type="track", limit=10, market=market)
             for item in res.get("tracks", {}).get("items", []) or []:
                 if item:
                     candidates.append(_track_dict(item, "strategy_artist"))
         except Exception:
             pass
 
-    # 2. Search by strategy genre (supplement if < 15 candidates)
-    if strategy_genre and len(candidates) < 15:
+    # 2. Search by strategy genre (supplement if < 10 candidates)
+    if strategy_genre and len(candidates) < 10:
         try:
-            res = sp.search(q=f"genre:{strategy_genre}", type="track", limit=15)
+            res = sp.search(q=strategy_genre, type="track", limit=10, market=market)
             for item in res.get("tracks", {}).get("items", []) or []:
                 if item:
                     candidates.append(_track_dict(item, "strategy_genre"))
@@ -84,7 +87,7 @@ def get_recommendations(
     if len(candidates) < 5:
         for artist in user_profile.get("top_artists", [])[:3]:
             try:
-                res = sp.search(q=f"artist:{artist['name']}", type="track", limit=5)
+                res = sp.search(q=artist["name"], type="track", limit=5, market=market)
                 for item in res.get("tracks", {}).get("items", []) or []:
                     if item:
                         candidates.append(_track_dict(item, "top_artist_fallback"))
@@ -114,7 +117,7 @@ def get_recommendations(
         except Exception:
             pass
 
-    feedback_scores = FeedbackStore().get_track_scores()
+    feedback_scores = FeedbackStore(user_profile.get("user_id", "global")).get_track_scores()
 
     for c in candidates:
         feat = feat_map.get(c["id"])
