@@ -244,7 +244,10 @@ def extract_features_from_api(api_data: dict) -> dict:
 
     # 6. Days since new artist — compare recently_played artists vs long-term top artists
     long_term_artist_names = {a["name"] for a in api_data.get("top_artists_long", [])}
+    short_term_artist_names = {a["name"] for a in api_data.get("top_artists_short", [])}
+
     if long_term_artist_names and recent_played and played_times:
+        # Primary: use exact timestamps from recently_played
         now = datetime.now(timezone.utc)
         days_list = []
         for t, dt in zip(recent_played, played_times):
@@ -253,11 +256,18 @@ def extract_features_from_api(api_data: dict) -> dict:
                 days_ago = (now - dt).total_seconds() / 86400.0
                 days_list.append(days_ago)
         if days_list:
-            features["days_new_artist"] = float(min(days_list))  # most recent new artist
+            features["days_new_artist"] = float(min(days_list))
         else:
-            features["days_new_artist"] = 7.0  # no new artists discovered recently
+            features["days_new_artist"] = 7.0  # no new artists in recent plays
+    elif long_term_artist_names and short_term_artist_names:
+        # Fallback: compare short-term vs long-term top artists (no timestamps)
+        new_in_short = short_term_artist_names - long_term_artist_names
+        if new_in_short:
+            features["days_new_artist"] = 2.0  # new artists in short-term top = recent discovery
+        else:
+            features["days_new_artist"] = 7.0  # same artists as always
     else:
-        features["days_new_artist"] = 3.0  # no long-term data to compare
+        features["days_new_artist"] = 7.0  # not enough data — assume no new discovery
 
     # 7. Repeat play ratio — overlap between recent and all-time
     recent_names = {t["name"] for t in recent_played[:20]}

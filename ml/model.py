@@ -14,31 +14,40 @@ from ml.features import FEATURE_NAMES
 RANDOM_STATE = 42
 
 
-def _generate_synthetic_data(n: int = 2000) -> tuple[np.ndarray, np.ndarray]:
+def _generate_synthetic_data(n: int = 4000) -> tuple[np.ndarray, np.ndarray]:
     rng = np.random.default_rng(RANDOM_STATE)
     n_engaged = n // 2
     n_churned = n - n_engaged
 
-    # Engaged listeners: healthy signal profile
+    # Feature ranges calibrated to real Spotify API output ranges:
+    #   skip_rate_trend:    0.00 – 0.25   (popularity proxy)
+    #   session_freq_delta: -3.0 – 3.0    (sessions/day delta from timestamps)
+    #   listen_depth:       0.45 – 0.80   (avg_energy from audio features)
+    #   genre_entropy_drop: 0.00 – 1.00   (genre concentration)
+    #   time_of_day_shift:  0.0  – 10.0   (hour drift from timestamps)
+    #   days_new_artist:    0.0  – 7.0    (days since new artist / top-artist fallback)
+    #   repeat_play_ratio:  0.0  – 0.80   (recent vs all-time overlap)
+    #
+    # Wide standard deviations = lots of class overlap = realistic intermediate probabilities
+
     engaged = np.column_stack([
-        rng.normal(-0.04, 0.05, n_engaged).clip(-0.30, 0.08),   # skip_rate_trend (low/stable)
-        rng.normal(0.5, 1.2, n_engaged),                         # session_freq_delta (growing)
-        rng.normal(0.78, 0.10, n_engaged).clip(0.45, 1.0),      # listen_depth (high)
-        rng.normal(-0.08, 0.12, n_engaged).clip(-0.40, 0.20),   # genre_entropy_drop (stable)
-        rng.normal(1.2, 1.0, n_engaged).clip(0.0, 5.0),         # time_of_day_shift (small)
-        rng.normal(0.8, 1.0, n_engaged).clip(0.0, 7.0),         # days_new_artist (low)
-        rng.normal(0.25, 0.10, n_engaged).clip(0.0, 0.60),      # repeat_play_ratio (moderate)
+        rng.normal(0.01, 0.07, n_engaged).clip(-0.10, 0.15),    # skip_rate_trend low
+        rng.normal(0.8, 2.0, n_engaged),                          # session_freq_delta positive
+        rng.normal(0.68, 0.14, n_engaged).clip(0.40, 1.0),       # listen_depth ~0.68
+        rng.normal(0.18, 0.18, n_engaged).clip(0.0, 0.65),       # genre_entropy_drop low
+        rng.normal(2.0, 2.2, n_engaged).clip(0.0, 9.0),          # time_of_day_shift small
+        rng.normal(2.0, 2.0, n_engaged).clip(0.0, 7.0),          # days_new_artist low
+        rng.normal(0.25, 0.18, n_engaged).clip(0.0, 0.75),       # repeat_play_ratio moderate
     ])
 
-    # Churning listeners: disengagement signal profile
     churned = np.column_stack([
-        rng.normal(0.22, 0.10, n_churned).clip(0.05, 0.55),     # skip_rate_trend (rising)
-        rng.normal(-2.2, 1.2, n_churned),                        # session_freq_delta (falling)
-        rng.normal(0.33, 0.10, n_churned).clip(0.10, 0.55),     # listen_depth (shallow)
-        rng.normal(0.35, 0.15, n_churned).clip(0.0, 0.80),      # genre_entropy_drop (collapsing)
-        rng.normal(4.5, 2.0, n_churned).clip(0.0, 11.0),        # time_of_day_shift (large)
-        rng.normal(5.8, 1.0, n_churned).clip(0.0, 7.0),         # days_new_artist (high)
-        rng.normal(0.68, 0.10, n_churned).clip(0.35, 1.0),      # repeat_play_ratio (high)
+        rng.normal(0.12, 0.08, n_churned).clip(0.0, 0.35),       # skip_rate_trend rising
+        rng.normal(-1.2, 2.0, n_churned),                         # session_freq_delta negative
+        rng.normal(0.56, 0.14, n_churned).clip(0.25, 0.85),      # listen_depth ~0.56 (overlaps!)
+        rng.normal(0.55, 0.22, n_churned).clip(0.10, 1.0),       # genre_entropy_drop high
+        rng.normal(5.5, 2.5, n_churned).clip(0.0, 12.0),         # time_of_day_shift large
+        rng.normal(5.0, 1.8, n_churned).clip(0.0, 7.0),          # days_new_artist high
+        rng.normal(0.55, 0.20, n_churned).clip(0.0, 1.0),        # repeat_play_ratio high
     ])
 
     X = np.vstack([engaged, churned])
@@ -48,14 +57,15 @@ def _generate_synthetic_data(n: int = 2000) -> tuple[np.ndarray, np.ndarray]:
 
 
 _XGB_PARAMS = dict(
-    n_estimators=150,
-    max_depth=4,
-    learning_rate=0.08,
-    subsample=0.8,
-    colsample_bytree=0.8,
-    min_child_weight=3,
-    gamma=0.1,
-    reg_alpha=0.1,
+    n_estimators=80,
+    max_depth=3,
+    learning_rate=0.05,
+    subsample=0.7,
+    colsample_bytree=0.7,
+    min_child_weight=10,
+    gamma=0.5,
+    reg_alpha=1.0,
+    reg_lambda=2.0,
     eval_metric="logloss",
     random_state=RANDOM_STATE,
     verbosity=0,
@@ -72,8 +82,9 @@ def train_and_save() -> tuple[XGBClassifier, CalibratedClassifierCV]:
     base = XGBClassifier(**_XGB_PARAMS)
     base.fit(X_train, y_train)
 
-    # Calibrated model uses cv=3 on the full dataset so it has enough data per fold
-    calibrated = CalibratedClassifierCV(XGBClassifier(**_XGB_PARAMS), cv=3, method="isotonic")
+    # Sigmoid calibration (Platt scaling) gives smooth continuous probabilities
+    # unlike isotonic which produces a step function and snaps to 0/100
+    calibrated = CalibratedClassifierCV(XGBClassifier(**_XGB_PARAMS), cv=5, method="sigmoid")
     calibrated.fit(X, y)
 
     os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
